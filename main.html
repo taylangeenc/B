@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Benimle Çıkar mısın?</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
+
+  /* Reset */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body, html {
+    height: 100%;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #ff758c, #ff7eb3);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    overflow: hidden;
+    padding: 20px;
+  }
+
+  #container {
+    max-width: 420px;
+    width: 100%;
+    background: rgba(255 255 255 / 0.15);
+    border-radius: 24px;
+    padding: 50px 35px 55px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    user-select: none;
+    position: relative;
+    z-index: 10;
+  }
+
+  h1 {
+    font-size: 2.8rem;
+    margin-bottom: 50px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    line-height: 1.2;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+  }
+
+  button {
+    font-size: 1.6rem;
+    padding: 17px 50px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    flex: 1;
+    max-width: 160px;
+    user-select: none;
+  }
+
+  button:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(255 192 203 / 0.7);
+  }
+
+  #yesButton {
+    background: linear-gradient(135deg, #ef476f, #ff9a9e);
+    box-shadow: 0 8px 25px rgba(239, 71, 111, 0.6);
+  }
+  #yesButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d83b5e, #fe8290);
+    transform: scale(1.05);
+    box-shadow: 0 12px 30px rgba(216, 59, 94, 0.75);
+  }
+
+  #noButton {
+    background: #555;
+    cursor: not-allowed;
+    opacity: 0.35;
+    box-shadow: none;
+  }
+
+  /* Effects containers */
+  #effects {
+    pointer-events: none;
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    z-index: 1;
+    overflow: visible;
+  }
+  canvas, #flowers, #hearts {
+    position: fixed;
+    top:0; left:0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Flower/Heart styles */
+  .falling {
+    position: fixed;
+    font-size: 24px;
+    user-select: none;
+    pointer-events: none;
+    will-change: transform;
+    animation-timing-function: linear;
+  }
+
+  /* Animations for flower and heart falling */
+  @keyframes fall {
+    to {
+      transform: translateY(110vh);
+    }
+  }
+  @keyframes sway {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(15px);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <h1>Benimle Çıkar mısın?</h1>
+  <div class="buttons">
+    <button id="yesButton" type="button">Evet</button>
+    <button id="noButton" type="button" disabled>Hayır</button>
+  </div>
+</div>
+
+<div id="effects">
+  <div id="flowers"></div>
+  <div id="hearts"></div>
+  <canvas id="fireworks"></canvas>
+</div>
+
+<script>
+  const yesButton = document.getElementById('yesButton');
+  const container = document.getElementById('container');
+  const flowersContainer = document.getElementById('flowers');
+  const heartsContainer = document.getElementById('hearts');
+  const fireworksCanvas = document.getElementById('fireworks');
+  const ctx = fireworksCanvas.getContext('2d');
+
+  function resizeCanvas() {
+    fireworksCanvas.width = window.innerWidth;
+    fireworksCanvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Falling flower and heart emojis data
+  const flowerEmoji = '🌸';
+  const heartEmoji = '❤️';
+
+  // Create falling emojis with animations
+  function createFallingEmoji(container, emoji) {
+    const span = document.createElement('span');
+    span.classList.add('falling');
+    span.textContent = emoji;
+    span.style.left = Math.random() * 100 + 'vw';
+    const size = 18 + Math.random() * 18;
+    span.style.fontSize = size + 'px';
+    span.style.animation = `fall ${8 + Math.random()*6}s linear forwards, sway ${3 + Math.random()*4}s ease-in-out infinite`;
+    span.style.animationDelay = (Math.random()*5) + 's';
+    container.appendChild(span);
+
+    // Remove from DOM after animation duration
+    setTimeout(() => {
+      span.remove();
+    }, (8 + 6) * 1000);
+  }
+
+  // Periodically create flowers and hearts falling
+  let flowerInterval, heartInterval;
+  function startFalling() {
+    flowerInterval = setInterval(() => {
+      createFallingEmoji(flowersContainer, flowerEmoji);
+    }, 350);
+
+    heartInterval = setInterval(() => {
+      createFallingEmoji(heartsContainer, heartEmoji);
+    }, 420);
+  }
+
+  // Fireworks animation setup
+  // Inspired by simple fireworks tutorial
+  class Firework {
+    constructor() {
+      this.reset();
+    }
+    reset() {
+      this.x = Math.random() * fireworksCanvas.width;
+      this.y = fireworksCanvas.height + 10;
+      this.targetY = Math.random() * fireworksCanvas.height / 2;
+      this.particles = [];
+      this.state = 'goingUp'; // goingUp, exploded, done
+      this.radius = 2 + Math.random() * 2;
+      this.speed = 4 + Math.random() * 3;
+      this.color = `hsl(${Math.random() * 360}, 100%, 65%)`;
+    }
+    update() {
+      if (this.state === 'goingUp') {
+        this.y -= this.speed;
+        if (this.y <= this.targetY) {
+          this.state = 'exploded';
+          for(let i=0; i<40+Math.random()*30; i++) {
+            this.particles.push({
+              x: this.x,
+              y: this.y,
+              angle: Math.random() * 2 * Math.PI,
+              speed: 1 + Math.random() * 4,
+              alpha: 1,
+              decay: 0.02 + Math.random() * 0.02,
+              radius: 1 + Math.random()*2,
+              color: this.color,
+              vx: 0, vy: 0
+            });
+          }
+        }
+      } else if (this.state === 'exploded') {
+        this.particles.forEach(p => {
+          p.x += Math.cos(p.angle) * p.speed;
+          p.y += Math.sin(p.angle) * p.speed + 0.5; // gravity effect
+          p.alpha -= p.decay;
+          if (p.alpha < 0) p.alpha = 0;
+        });
+        this.particles = this.particles.filter(p => p.alpha > 0);
+        if (this.particles.length === 0) {
+          this.state = 'done';
+        }
+      }
+    }
+    draw(ctx) {
+      if (this.state === 'goingUp') {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+      } else if (this.state === 'exploded') {
+        this.particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${hexToRgb(p.color)},${p.alpha})`;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+        });
+      }
+    }
+  }
+
+  function hexToRgb(hsl) {
+    // Convert hsl string to rgb string "r,g,b"
+    // hsl is in format hsl(h, s%, l%)
+    // We'll convert hsl to rgb using algorithm
+    let m = hsl.match(/hsl\((\d+\.?\d*),\s*(\d+)%?,\s*(\d+)%?\)/);
+    if (!m) return "255,255,255";
+    let h = parseFloat(m[1]) / 360;
+    let s = parseFloat(m[2]) / 100;
+    let l = parseFloat(m[3]) / 100;
+    function hue2rgb(p, q, t) {
+      if (t < 0) t+=1;
+      if (t > 1) t-=1;
+      if (t < 1/6) return p+(q-p)*6*t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p+(q-p)*(2/3 - t)*6;
+      return p;
+    }
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l; // achromatic
+    } else {
+      let q = l < 0.5 ? l*(1+s) : l+s-l*s;
+      let p = 2*l - q;
+      r = hue2rgb(p,q,h + 1/3);
+      g = hue2rgb(p,q,h);
+      b = hue2rgb(p,q,h - 1/3);
+    }
+    return `${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)}`;
+  }
+
+  let fireworks = [];
+
+  function launchFirework() {
+    fireworks.push(new Firework());
+  }
+
+  function animateFireworks() {
+    ctx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+    fireworks.forEach((fw, i) => {
+      fw.update();
+      fw.draw(ctx);
+      if (fw.state === 'done') {
+        fireworks.splice(i, 1);
+      }
+    });
+  }
+
+  // Main Animation Loop
+  let animInterval;
+
+  function animationLoop() {
+    animateFireworks();
+    requestAnimationFrame(animationLoop);
+  }
+
+  animationLoop();
+
+  // Start launching fireworks periodically
+  let fireworkInterval;
+
+  function startFireworks() {
+    fireworkInterval = setInterval(() => {
+      launchFirework();
+    }, 700);
+  }
+
+  function stopFireworks() {
+    clearInterval(fireworkInterval);
+    fireworks = [];
+  }
+
+  // On clicking Evet button, change page content and start effects
+  yesButton.addEventListener('click', () => {
+    container.innerHTML = `
+      <h1>Evet Diyeceğini Biliyordum</h1>
+      <h1>❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️</h1>
+    `;
+    startFalling();
+    startFireworks();
+  });
+
+</script>
+
+</body>
+</html>
+
