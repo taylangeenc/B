@@ -1,0 +1,289 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Öylesine Bi Oyun</title>
+  <style>
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+      color: #641e16;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 20px 10px 40px;
+      user-select: none;
+      overflow-x: hidden;
+    }
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 1.5px;
+      text-shadow: 1px 1px 5px rgba(255, 255, 255, 0.7);
+    }
+    p {
+      font-size: 1.1rem;
+      margin: 0 0 15px;
+      text-align: center;
+      max-width: 400px;
+      font-weight: 500;
+      text-shadow: 1px 1px 5px rgba(255, 255, 255, 0.6);
+    }
+
+    /* Oyun alanı */
+    #game {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      height: 650px;
+      background: #fff0f6;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(179, 57, 94, 0.4);
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    /* Balonlar */
+    .heart-balloon {
+      position: absolute;
+      width: 50px;
+      height: 60px;
+      background: #e84a5f;
+      background: linear-gradient(135deg, #e84a5f 0%, #ff6b81 100%);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      cursor: pointer;
+      filter: drop-shadow(0 3px 3px rgba(232,74,95,0.5));
+      user-select: none;
+      animation-timing-function: linear;
+      transform-origin: center bottom;
+      transition: transform 0.15s ease;
+    }
+
+    .heart-balloon:before,
+    .heart-balloon:after {
+      content: "";
+      position: absolute;
+      background: inherit;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      top: 0;
+      left: 0;
+    }
+    .heart-balloon:before {
+      transform: translateX(-25px);
+    }
+    .heart-balloon:after {
+      transform: translateX(25px);
+    }
+
+    /* Balon patlama animasyonu */
+    .pop {
+      animation: popballoon 0.3s forwards;
+    }
+    @keyframes popballoon {
+      to {
+        opacity: 0;
+        transform: scale(2) rotate(30deg);
+      }
+    }
+
+    /* Skor */
+    #scoreboard {
+      margin-top: 15px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #c72c41;
+      text-align: center;
+      letter-spacing: 2px;
+      text-shadow: 1px 1px 3px #ffc4d6;
+    }
+
+    /* Başlat/durdur düğmesi */
+    #startBtn {
+      margin-top: 20px;
+      background-color: #e84a5f;
+      border: none;
+      border-radius: 30px;
+      color: white;
+      font-weight: 700;
+      padding: 12px 28px;
+      font-size: 1.25rem;
+      cursor: pointer;
+      box-shadow: 0 7px 12px rgba(232, 74, 95, 0.7);
+      transition: background-color 0.3s ease;
+      user-select: none;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      width: 180px;
+    }
+    #startBtn:hover {
+      background-color: #c72c41;
+    }
+
+    /* Küçük not */
+    #note {
+      margin-top: 24px;
+      font-size: 1rem;
+      font-style: italic;
+      color: #8b3a51;
+      text-align: center;
+      max-width: 380px;
+      user-select: none;
+    }
+
+    /* Responsive ayarlar */
+    @media (max-width: 500px) {
+      #game {
+        height: 550px;
+      }
+      .heart-balloon {
+        width: 40px;
+        height: 48px;
+      }
+      #startBtn {
+        width: 140px;
+        font-size: 1.1rem;
+        padding: 10px 20px;
+      }
+      h1 {
+        font-size: 1.8rem;
+      }
+      p {
+        font-size: 1rem;
+        max-width: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Biraz Kötü Balon Oyunu</h1>
+  <p>Balonlara dokun.</p>
+  <div id="game" aria-label="Aşk Balonları Oyunu"></div>
+  <div id="scoreboard">Puan: 0</div>
+  <button id="startBtn" aria-pressed="false" aria-label="Oyunu başlat">Oyunu Başlat</button>
+  <div id="note">Ne kadar çok balona dokunursan, o kadar puan! 💖</div>
+
+  <script>
+    (() => {
+      const game = document.getElementById('game');
+      const scoreboard = document.getElementById('scoreboard');
+      const startBtn = document.getElementById('startBtn');
+
+      let isPlaying = false;
+      let score = 0;
+      let balloonInterval = null;
+
+      // Balon oluşturma fonksiyonu
+      function createBalloon() {
+        const balloon = document.createElement('div');
+        balloon.classList.add('heart-balloon');
+
+        // Rastgele genişlik ve konum
+        const maxWidth = game.clientWidth;
+        const x = Math.random() * (maxWidth - 50);
+
+        balloon.style.left = `${x}px`;
+        balloon.style.bottom = '-70px';
+
+        // Balonun hızını da rastgele yapalım
+        const speed = 4000 + Math.random() * 3000; // 4-7 saniye arası yukarı çıkacak
+
+        game.appendChild(balloon);
+
+        // Animasyon için hareket ettirme
+        balloon.animate(
+          [
+            { transform: 'translateY(0)' },
+            { transform: `translateY(-${game.clientHeight + 100}px)` }
+          ],
+          { duration: speed, easing: 'linear' }
+        );
+
+        // Süre sonunda balonu kaldır
+        const removeTimeout = setTimeout(() => {
+          if (game.contains(balloon)) {
+            game.removeChild(balloon);
+          }
+        }, speed);
+
+        // Balona tıklama/dokunma olayı
+        const popBalloon = () => {
+          clearTimeout(removeTimeout);
+          balloon.removeEventListener('click', popBalloon);
+          balloon.removeEventListener('touchstart', popBalloon);
+          balloon.classList.add('pop');
+          increaseScore();
+          setTimeout(() => {
+            if (game.contains(balloon)) {
+              game.removeChild(balloon);
+            }
+          }, 300);
+        };
+
+        balloon.addEventListener('click', popBalloon);
+        balloon.addEventListener('touchstart', popBalloon);
+      }
+
+      // Puan arttırma fonksiyonu
+      function increaseScore() {
+        score++;
+        scoreboard.textContent = `Puan: ${score}`;
+      }
+
+      // Oyunu başlat/durdur
+      function toggleGame() {
+        if (isPlaying) {
+          stopGame();
+        } else {
+          startGame();
+        }
+      }
+
+      function startGame() {
+        isPlaying = true;
+        score = 0;
+        scoreboard.textContent = `Puan: ${score}`;
+        startBtn.textContent = 'Oyunu Durdur';
+        startBtn.setAttribute('aria-pressed', 'true');
+
+        // Balonlar çıkmaya başlasın
+        balloonInterval = setInterval(() => {
+          createBalloon();
+        }, 800);
+      }
+
+      function stopGame() {
+        isPlaying = false;
+        startBtn.textContent = 'Oyunu Başlat';
+        startBtn.setAttribute('aria-pressed', 'false');
+
+        clearInterval(balloonInterval);
+        balloonInterval = null;
+
+        // Kalan balonları temizle
+        const balloons = document.querySelectorAll('.heart-balloon');
+        balloons.forEach(b => b.remove());
+      }
+
+      startBtn.addEventListener('click', toggleGame);
+      startBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        toggleGame();
+      });
+    })();
+  </script>
+</body>
+</html>
